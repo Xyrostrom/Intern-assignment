@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+	<style>
+	#chartdiv {
+	  width: 100%;
+	  height: 500px;
+	}
+	</style>
+</head>
+<body>
+
+<div class="col-md-12 col">
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12 table-responsive" id="stage">
+				<table class="table table-stripped table-bordered hidden">
+					<thead>
+						<tr>
+							<th>Id</th>
+							<th width="70%">Name</th>
+							<th>Start Date</th>
+							<th>End Date</th>
+						</tr>
+					</thead>
+					<tbody id="table_data"></tbody>
+				</table>
+			</div>
+			<div class="col-md-12">
+				<div id="chartdiv"></div>
+			</div>
+		</div>
+	</div>
+</div>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="https://www.amcharts.com/lib/4/core.js"></script>
+<script src="https://www.amcharts.com/lib/4/charts.js"></script>
+<script src="https://www.amcharts.com/lib/4/themes/animated.js"></script>
+<script>
+$(document).ready(function(){
+	var url = "https://totalcloud-static.s3.amazonaws.com/intern.json";
+	$.getJSON(url, function(jd) {
+		console.log(jd);
+		//$("#stage").html(jd);
+		var array_length = jd.length;
+		var get_data = "";
+		jsonObj = [];
+		for(var i=0; i < array_length;i++){
+			get_data += "<tr><td>"+jd[i].id+"</td><td width='70%'><input type='checkbox' value="+jd[i].name+"_"+jd[i].id+" /> &nbsp;<i class='fa fa-user'></i> &nbsp;"+jd[i].name+"</td><td>"+jd[i].start+"</td><td>"+jd[i].end+"</td></tr>";
+			var start_date = jd[i].start.split("/");
+			var end_date = jd[i].end.split("/");
+			var colorR = Math.floor((Math.random() * 256));
+			var colorG = Math.floor((Math.random() * 256));
+			var colorB = Math.floor((Math.random() * 256));
+			var rgb = colorR + "," + colorG + "," + colorB;
+			item = {}
+			item ["name"] = jd[i].name;
+			item ["fromDate"] = start_date[2] +"-"+start_date[1]+"-"+start_date[0]+ " 00:00";
+			item ["toDate"] = end_date[2] +"-"+end_date[1]+"-"+end_date[0]+ " 00:00";
+			item ["color"] = "rgb("+rgb+")";
+			jsonObj.push(item);
+			//jdata = ["name" => jd[i].name, "fromDate" => jd[i].start, "toDate" => jd[i].end, "color" => colorSet.getIndex(0).brighten(0)];
+		}
+		if(get_data != ""){
+			$(".table").removeClass("hidden");
+			$("#table_data").html(get_data);
+			
+			// Chart Code
+			
+			am4core.ready(function() {
+				am4core.useTheme(am4themes_animated);
+				var chart = am4core.create("chartdiv", am4charts.XYChart);
+				chart.hiddenState.properties.opacity = 0;
+				chart.paddingRight = 30;
+				chart.dateFormatter.inputDateFormat = "yyyy-MM-dd HH:mm";
+				var colorSet = new am4core.ColorSet();
+				colorSet.saturation = 0.4;
+				chart.data = jsonObj;
+				var categoryAxis = chart.yAxes.push(new am4charts.CategoryAxis());
+				categoryAxis.dataFields.category = "name";
+				categoryAxis.renderer.grid.template.location = 0;
+				categoryAxis.renderer.inversed = true;
+
+				var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+				dateAxis.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm";
+				dateAxis.renderer.minGridDistance = 70;
+				dateAxis.baseInterval = { count: 30, timeUnit: "date" };
+				dateAxis.max = new Date(2019,8,30).getTime();
+				dateAxis.strictMinMax = true;
+				dateAxis.renderer.tooltipLocation = 0;
+
+				var series1 = chart.series.push(new am4charts.ColumnSeries());
+				series1.columns.template.width = am4core.percent(100);
+				series1.columns.template.tooltipText = "{name}: {openDateX} - {dateX}";
+
+				series1.dataFields.openDateX = "fromDate";
+				series1.dataFields.dateX = "toDate";
+				series1.dataFields.categoryY = "name";
+				series1.columns.template.propertyFields.fill = "color"; // get color from data
+				series1.columns.template.propertyFields.stroke = "color";
+				series1.columns.template.strokeOpacity = 1;
+
+				chart.scrollbarX = new am4core.Scrollbar();
+			});
+			
+			// Chart Code
+		}
+	});
+});
+</script>
+<!-- Chart code -->
+<script>
+<!-- am4core.ready(function() { -->
+
+<!-- // Themes begin -->
+<!-- am4core.useTheme(am4themes_animated); -->
+<!-- // Themes end -->
+
+<!-- var chart = am4core.create("chartdiv", am4charts.XYChart); -->
+<!-- chart.hiddenState.properties.opacity = 0; // this creates initial fade-in -->
+
+<!-- chart.paddingRight = 30; -->
+<!-- chart.dateFormatter.inputDateFormat = "yyyy-MM-dd HH:mm"; -->
+
+<!-- var colorSet = new am4core.ColorSet(); -->
+<!-- colorSet.saturation = 0.4; -->
+
+<!-- chart.data = [ -->
+  <!-- { -->
+    <!-- name: "John", -->
+    <!-- fromDate: "2018-01-01 08:00", -->
+    <!-- toDate: "2018-01-01 10:00", -->
+    <!-- color: colorSet.getIndex(0).brighten(0) -->
+  <!-- }, -->
+  <!-- { -->
+    <!-- name: "John", -->
+    <!-- fromDate: "2018-01-01 12:00", -->
+    <!-- toDate: "2018-01-01 15:00", -->
+    <!-- color: colorSet.getIndex(0).brighten(0.4) -->
+  <!-- }, -->
+  <!-- { -->
+    <!-- name: "John", -->
+    <!-- fromDate: "2018-01-01 15:30", -->
+    <!-- toDate: "2018-01-01 21:30", -->
+    <!-- color: colorSet.getIndex(0).brighten(0.8) -->
+  <!-- }, -->
+
+  <!-- { -->
+    <!-- name: "Jane", -->
+    <!-- fromDate: "2018-01-01 09:00", -->
+    <!-- toDate: "2018-01-01 12:00", -->
+    <!-- color: colorSet.getIndex(2).brighten(0) -->
+  <!-- }, -->
+  <!-- { -->
+    <!-- name: "Jane", -->
+    <!-- fromDate: "2018-01-01 13:00", -->
+    <!-- toDate: "2018-01-01 17:00", -->
+    <!-- color: colorSet.getIndex(2).brighten(0.4) -->
+  <!-- }, -->
+
+  <!-- { -->
+    <!-- name: "Peter", -->
+    <!-- fromDate: "2018-01-01 11:00", -->
+    <!-- toDate: "2018-01-01 16:00", -->
+    <!-- color: colorSet.getIndex(4).brighten(0) -->
+  <!-- }, -->
+  <!-- { -->
+    <!-- name: "Peter", -->
+    <!-- fromDate: "2018-01-01 16:00", -->
+    <!-- toDate: "2018-01-01 19:00", -->
+    <!-- color: colorSet.getIndex(4).brighten(0.4) -->
+  <!-- }, -->
+
+  <!-- { -->
+    <!-- name: "Melania", -->
+    <!-- fromDate: "2018-01-01 16:00", -->
+    <!-- toDate: "2018-01-01 20:00", -->
+    <!-- color: colorSet.getIndex(6).brighten(0) -->
+  <!-- }, -->
+  <!-- { -->
+    <!-- name: "Melania", -->
+    <!-- fromDate: "2018-01-01 20:30", -->
+    <!-- toDate: "2018-01-01 24:00", -->
+    <!-- color: colorSet.getIndex(6).brighten(0.4) -->
+  <!-- }, -->
+
+  <!-- { -->
+    <!-- name: "Donald", -->
+    <!-- fromDate: "2018-01-01 13:00", -->
+    <!-- toDate: "2018-01-01 24:00", -->
+    <!-- color: colorSet.getIndex(8).brighten(0) -->
+  <!-- } -->
+<!-- ]; -->
+
+<!-- var categoryAxis = chart.yAxes.push(new am4charts.CategoryAxis()); -->
+<!-- categoryAxis.dataFields.category = "name"; -->
+<!-- categoryAxis.renderer.grid.template.location = 0; -->
+<!-- categoryAxis.renderer.inversed = true; -->
+
+<!-- var dateAxis = chart.xAxes.push(new am4charts.DateAxis()); -->
+<!-- dateAxis.dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"; -->
+<!-- dateAxis.renderer.minGridDistance = 70; -->
+<!-- dateAxis.baseInterval = { count: 30, timeUnit: "minute" }; -->
+<!-- dateAxis.max = new Date(2018, 0, 1, 24, 0, 0, 0).getTime(); -->
+<!-- dateAxis.strictMinMax = true; -->
+<!-- dateAxis.renderer.tooltipLocation = 0; -->
+
+<!-- var series1 = chart.series.push(new am4charts.ColumnSeries()); -->
+<!-- series1.columns.template.width = am4core.percent(80); -->
+<!-- series1.columns.template.tooltipText = "{name}: {openDateX} - {dateX}"; -->
+
+<!-- series1.dataFields.openDateX = "fromDate"; -->
+<!-- series1.dataFields.dateX = "toDate"; -->
+<!-- series1.dataFields.categoryY = "name"; -->
+<!-- series1.columns.template.propertyFields.fill = "color"; // get color from data -->
+<!-- series1.columns.template.propertyFields.stroke = "color"; -->
+<!-- series1.columns.template.strokeOpacity = 1; -->
+
+<!-- chart.scrollbarX = new am4core.Scrollbar(); -->
+
+<!-- }); -->
+</script>
+
+</body>
+</html>
